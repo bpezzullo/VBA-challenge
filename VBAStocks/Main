@@ -1,10 +1,29 @@
 Sub Main()
+Dim D_increase As Double, D_decrease As Double, D_volume As Double
+Dim I_stck_n As String, D_stck_n As String, V_stck_n As String
+
+'For i = 0 To Application.Sheets.Count - 1
+For i = 1 To 2
+    Worksheets(i).Activate
+    Call Calculate(D_increase, D_decrease, D_volume, I_stck_n, D_stck_n, V_stck_n)
+    'MsgBox ("Sheet " & i + 1 & " done" & Worksheets(i + 1).Name)
+    'MsgBox ("For Sheet " & Worksheets(i).Name & " Stock with maximum percentage increase is " & D_increase)
+    'MsgBox ("For Sheet " & Worksheets(i).Name & " Stock with maximum percentage decrease is " & D_decrease)
+    'MsgBox ("For Sheet " & Worksheets(i).Name & " Stock with maximum volume is " & D_volume)
+Next i
+
+
+End Sub
+
+
+Sub Calculate(Increase As Double, Decrease As Double, Volume As Double, I_stck As String, D_stck As String, V_stck As String)
+
 Dim Ticker_cell As Integer          'Ticker_cell keeps track on what row to store the results on the spreadsheet.
 Dim Start As String                 'Start is the current ticker name
 Dim Found As String                 'Found is the next Ticker symbol found from the function
 Dim rowct As Long                   'Rowct is used to determine where in the spreadsheet the Ticker changes.
 Dim continue As Boolean             'Continue is used to control the loop
-Dim Volcell1 As String              ' Not needed
+Dim Year As Integer                 ' The year to search for
 Dim Volcell2 As String              ' Not needed
 Dim test As String
 
@@ -16,10 +35,12 @@ Found = Cells(1, rowct).Value           ' Set Found with the dummy label. I used
 Start = Found                           '
 continue = True                         ' set the while flag to the initial value
 
-Range("I1") = "Ticker"                  ' Label the result Columns
-Range("J1") = "Yearly Change"
-Range("K1") = "Percent Change"
-Range("L1") = "Volume"
+range("I:L").ClearContents              ' Clear where the results will be
+
+range("I1") = "Ticker"                  ' Label the result Columns
+range("J1") = "Yearly Change"
+range("K1") = "Percent Change"
+range("L1") = "Volume"
 
 ' Loop until the end of the spreadsheet
 ' Call the function Identity_ticker to find the next company.  Store the row information to determine where
@@ -38,13 +59,17 @@ Do While continue = True
  
   
  If rowct > 2 Then
-    'MsgBox (Str(rowct) + Str(Ticker_cell) + Str(Cells(Ticker_cell - 1, 20).Value) + Str(Cells(rowct - 1, 6).Value)) + Str(Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value)
-    ' Find the change from the start of the change.
-    Cells(Ticker_cell - 1, 10).Value = Cells(rowct - 1, 6).Value - Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
+    ' Not sure I have too, but sorting information.  If needed it would be done now. Or could sort at the very beginning
+    ' Dim strDataRange As Range
+    ' Dim keyRange As range
+    ' Set strDataRange = range("Your Data Range")
+    ' Set keyRange = range("Your Sort by Column")
+    ' strDataRange.Sort Key1:=keyRange, Header:=xlYes
     
-    ' Find the percentage change, but check to see what the starting value for the stock is.  If it is 0 then
-    ' set the field to 0
-    If Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value <> 0 Then
+    
+    'MsgBox (Str(rowct) + Str(Ticker_cell) + Str(Cells(Ticker_cell - 1, 20).Value) + Str(Cells(rowct - 1, 6).Value)) + Str(Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value)
+    Cells(Ticker_cell - 1, 10).Value = Cells(rowct - 1, 6).Value - Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
+        If Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value <> 0 Then
         Cells(Ticker_cell - 1, 11).Value = Cells(Ticker_cell - 1, 10).Value / Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
     Else
         Cells(Ticker_cell - 1, 11).Value = 0
@@ -53,8 +78,8 @@ Do While continue = True
  ' I couldn't figure out how to call the spreadsheet SUM function so created my own function for now.
     Cells(Ticker_cell - 1, 12).Value = Sum_man(Cells(Ticker_cell - 1, 20).Value, rowct - 1)
     
- End If
- 
+    End If
+
  ' Increase the row for the next ticker symbol
  Ticker_cell = Ticker_cell + 1
  
@@ -69,6 +94,13 @@ Do While continue = True
 
  ' Get the next sticker
  Loop
+ 
+ Call highlight(2, Ticker_cell)
+
+'maximum = WorksheetFunction.max(rng)
+Increase = Ticker_cell
+Decrease = Ticker_cell
+
 
 End Sub
 
@@ -115,4 +147,49 @@ For i = First To Second
 Sum_man = result
 
 End Function
+
+Private Sub highlight(min As Integer, max As Integer)
+
+Dim rng As range, cell As range
+Dim rangeinfo As String
+Dim Las As String
+
+Cells.Interior.ColorIndex = 0
+
+rangeinfo = cellval("J", min) + ":" + cellval("J", max)
+
+Set rng = range(rangeinfo)
+
+For Each cell In rng
+
+    If cell.Value > 0 Then
+        cell.Interior.ColorIndex = 4
+    End If
+    If cell.Value < 0 Then
+        cell.Interior.ColorIndex = 3
+    End If
+    
+    If Cells(1, 19).Value = "" Then Cells(1, 19).Value = cell
+        
+Next cell
+
+rangeinfo = cellval("K", min) + ":" + cellval("K", max)
+
+Set rng = range(rangeinfo)
+
+rng.NumberFormat = "0.00%"
+
+Set rng = range("T:T")
+'rng.ClearContents
+
+End Sub
+
+Function cellval(letter As String, row As Integer) As String
+
+cellval = letter + CStr(row)
+
+End Function
+
+
+
 
