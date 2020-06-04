@@ -1,27 +1,22 @@
 Sub Main()
-Dim Ticker_cell As Integer
-Dim Start As String
-Dim Found As String
-Dim rowct As Long
-Dim continue As Boolean
-Dim Volcell1 As String
-Dim Volcell2 As String
+Dim Ticker_cell As Integer          'Ticker_cell keeps track on what row to store the results on the spreadsheet.  
+Dim Start As String                 'Start is the current ticker name 
+Dim Found As String                 'Found is the next Ticker symbol found from the function
+Dim rowct As Long                   'Rowct is used to determine where in the spreadsheet the Ticker changes.
+Dim continue As Boolean             'Continue is used to control the loop
+Dim Volcell1 As String              ' Not needed
+Dim Volcell2 As String              ' Not needed
 Dim test As String
 
-'initialize variables
-'Ticker_cell keeps track on what row to store the results.  Start with the second row
-'Start is the initial ticker name space
-'Found is the Ticker found from the function
-'Rowct is used to determine where in the spreadsheet the Ticker changes. Start with 1
-'Continue is used to control the loop
+'Initialize variables
 
+Ticker_cell = 2                         ' Start with the second row
+rowct = 1                               ' Start with 1
+Found = Cells(1, rowct).Value           ' Set Found with the dummy label. I used the first cell
+Start = Found                           ' 
+continue = True                         ' set the while flag to the initial value
 
-Ticker_cell = 2
-rowct = 1
-Found = Cells(1, rowct).Value
-Start = Found
-continue = True
-Range("I1") = "Ticker"
+Range("I1") = "Ticker"                  ' Label the result Columns
 Range("J1") = "Yearly Change"
 Range("K1") = "Percent Change"
 Range("L1") = "Volume"
@@ -32,21 +27,22 @@ Range("L1") = "Volume"
 
 Do While continue = True
 
- rowct = Identify_ticker(Start, Found, rowct)   ' start from the last spot rowct
+ ' Need to find the row of the next Ticker symbol.   Call the Function Identify_ticker passing in the current sticker
+ ' and the rowcount to start looking from. 
+ rowct = Identify_ticker(Start, rowct)   ' start from the last spot rowct
  'MsgBox (Str(rowct))
  Found = Cells(rowct, 1).Value                  ' Change of ticker symbol so save it in the appropriate row
  Cells(Ticker_cell, 9).Value = Found            ' Place in the spreadsheet at the appropriate location
 
  Cells(Ticker_cell, 20).Value = rowct           ' Need to convert this to an array instead of saving on the spreadsheet
  
- 
- 
- ' I couldn't figure out how to call the spreadsheet sum so created my own function for now.
   
  If rowct > 2 Then
     'MsgBox (Str(rowct) + Str(Ticker_cell) + Str(Cells(Ticker_cell - 1, 20).Value) + Str(Cells(rowct - 1, 6).Value)) + Str(Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value)
     Cells(Ticker_cell - 1, 10).Value = Cells(rowct - 1, 6).Value - Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
     Cells(Ticker_cell - 1, 11).Value = Cells(Ticker_cell - 1, 10).Value / Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
+ 
+ ' I couldn't figure out how to call the spreadsheet SUM function so created my own function for now.
     Cells(Ticker_cell - 1, 12).Value = Sum_man(Cells(Ticker_cell - 1, 20).Value, rowct - 1)
     
     End If
@@ -59,54 +55,55 @@ Do While continue = True
  Start = Found
  
  ' Are we at the end of the spreadsheet. If so jump out of the while loop
-  'If Found = "AAN" Then continue = False  'reset to "" when done testing
+  'If Found = "AAN" Then continue = False       ' This is for debugging
   
-  If Found = "" Then continue = False
+  If Found = "" Then continue = False           ' The last cell will return "".  If at end set the continue flag to stop the while loop
 
  ' Get the next sticker
  Loop
 
-
-
-
 End Sub
 
-Function Identify_ticker(Start As String, Found As String, rowct As Long) As Long
+Function Identify_ticker(Start As String,  rowct As Long) As Long
 
 ' Find the next ticker
-' Hold is a temporary field
 
-Dim Hold As String
-Dim i As Long
-Dim ticker_continue As Boolean
+Dim Hold As String                                  ' Hold is a temporary field
+Dim i As Long                                       ' variable to help count
+Dim ticker_continue As Boolean                      ' Continue flag for while loop
 
-i = rowct
-ticker_continue = True
+i = rowct                                           ' Start at the last know location in the spreadsheet
+ticker_continue = True                              ' Loop while continueis True
 
-' Loop until the next sysmbol, but added a restriction of only 1000 cells
+' Loop until the next sysmbol
 Do While ticker_continue = True
 
-Hold = Cells(i, 1).Value
-If Start <> Hold Then           ' Found a new ticker symbol
-    Found = Hold
-    Identify_ticker = i         ' return the row of the new ticker symbol
-    ticker_continue = False     ' Exit from the function
-Else
-    i = i + 1
-    End If
+ Hold = Cells(i, 1).Value
+ If Start <> Hold Then                              ' Found a new ticker symbol
+    Identify_ticker = i                             ' return the row of the new ticker symbol
+    ticker_continue = False                         ' Exit from the function
+ Else
+    i = i + 1                                       'step down to the next row
+ End If
+
 Loop
 
 End Function
 
 Function Sum_man(First As Long, Second As Long) As Double
- Dim result As Double
- 
- result = 0
+' Sum up the range of cells provided with the input.  From Row First to row Second in column 7 or G.
+
+' Setup needed Variables.
+Dim result As Double
+
+' Initialize result to 0
+result = 0
  
 For i = First To Second
  result = result + Cells(i, 7).Value
  Next i
  
- Sum_man = result
+' Return result
+Sum_man = result
 
 End Function
