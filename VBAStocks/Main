@@ -1,6 +1,6 @@
 Sub Main()
-Dim Ticker_cell As Integer          'Ticker_cell keeps track on what row to store the results on the spreadsheet.  
-Dim Start As String                 'Start is the current ticker name 
+Dim Ticker_cell As Integer          'Ticker_cell keeps track on what row to store the results on the spreadsheet.
+Dim Start As String                 'Start is the current ticker name
 Dim Found As String                 'Found is the next Ticker symbol found from the function
 Dim rowct As Long                   'Rowct is used to determine where in the spreadsheet the Ticker changes.
 Dim continue As Boolean             'Continue is used to control the loop
@@ -13,7 +13,7 @@ Dim test As String
 Ticker_cell = 2                         ' Start with the second row
 rowct = 1                               ' Start with 1
 Found = Cells(1, rowct).Value           ' Set Found with the dummy label. I used the first cell
-Start = Found                           ' 
+Start = Found                           '
 continue = True                         ' set the while flag to the initial value
 
 Range("I1") = "Ticker"                  ' Label the result Columns
@@ -28,7 +28,7 @@ Range("L1") = "Volume"
 Do While continue = True
 
  ' Need to find the row of the next Ticker symbol.   Call the Function Identify_ticker passing in the current sticker
- ' and the rowcount to start looking from. 
+ ' and the rowcount to start looking from.
  rowct = Identify_ticker(Start, rowct)   ' start from the last spot rowct
  'MsgBox (Str(rowct))
  Found = Cells(rowct, 1).Value                  ' Change of ticker symbol so save it in the appropriate row
@@ -39,13 +39,21 @@ Do While continue = True
   
  If rowct > 2 Then
     'MsgBox (Str(rowct) + Str(Ticker_cell) + Str(Cells(Ticker_cell - 1, 20).Value) + Str(Cells(rowct - 1, 6).Value)) + Str(Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value)
+    ' Find the change from the start of the change.
     Cells(Ticker_cell - 1, 10).Value = Cells(rowct - 1, 6).Value - Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
-    Cells(Ticker_cell - 1, 11).Value = Cells(Ticker_cell - 1, 10).Value / Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
+    
+    ' Find the percentage change, but check to see what the starting value for the stock is.  If it is 0 then
+    ' set the field to 0
+    If Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value <> 0 Then
+        Cells(Ticker_cell - 1, 11).Value = Cells(Ticker_cell - 1, 10).Value / Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
+    Else
+        Cells(Ticker_cell - 1, 11).Value = 0
+    End If
  
  ' I couldn't figure out how to call the spreadsheet SUM function so created my own function for now.
     Cells(Ticker_cell - 1, 12).Value = Sum_man(Cells(Ticker_cell - 1, 20).Value, rowct - 1)
     
-    End If
+ End If
  
  ' Increase the row for the next ticker symbol
  Ticker_cell = Ticker_cell + 1
@@ -64,7 +72,7 @@ Do While continue = True
 
 End Sub
 
-Function Identify_ticker(Start As String,  rowct As Long) As Long
+Function Identify_ticker(Start As String, rowct As Long) As Long
 
 ' Find the next ticker
 
@@ -107,3 +115,4 @@ For i = First To Second
 Sum_man = result
 
 End Function
+
