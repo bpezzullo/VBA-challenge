@@ -1,6 +1,12 @@
+Dim Ticker_col As Integer
+Dim Ticker_open_col As Integer
+Dim Ticker_close_col As Integer
+Dim Ticker_volume_col As Integer
+
 Sub Main()
 Dim D_increase As Double, D_decrease As Double, D_volume As Double
 Dim I_stck_n As String, D_stck_n As String, V_stck_n As String
+Dim i As Integer
 
 'Loop through all the sheets  For i = 1 To 1
 
@@ -20,89 +26,51 @@ End Sub
 Sub Calculate(Increase As Double, Decrease As Double, Volume As Double, I_stck As String, D_stck As String, V_stck As String)
 
 Dim Ticker_cell As Integer          'Ticker_cell keeps track on what row to store the results on the spreadsheet.
-Dim Start As String                 'Start is the current ticker name
+Dim start As String                 'Start is the current ticker name
 Dim Found As String                 'Found is the next Ticker symbol found from the function
 Dim rowct As Long                   'Rowct is used to determine where in the spreadsheet the Ticker changes.
 Dim continue As Boolean             'Continue is used to control the loop
 Dim Year As Integer                 ' The year to search for
 Dim Volcell2 As String              ' Not needed
-Dim test As String
+Dim Test As String
 Dim cur_range As String
+Dim temp As Double
 
 'Initialize variables
 
 Ticker_cell = 2                         ' Start with the second row
 rowct = 1                               ' Start with 1
 Found = Cells(1, rowct).Value           ' Set Found with the dummy label. I used the first cell
-Start = Found                           '
+start = Found                           '
 continue = True                         ' set the while flag to the initial value
 
-range("I:P").ClearContents              ' Clear where the results will be
 
-range("I1") = "Ticker"                  ' Label the result Columns
-range("J1") = "Yearly Change"
-range("K1") = "Percent Change"
-range("L1") = "Volume"
-range("O1") = "Ticker"
-range("P1") = "Value"
-range("I1:P1").Font.Bold = True
-range("N2") = "Greatest % Increase"
-range("N3") = "Greatest % Decrease"
-range("N4") = "Greatest Volume"
-range("N2").Font.Bold = True
-range("N3").Font.Bold = True
-range("N4").Font.Bold = True
-range("N2:N4").ShrinkToFit = True
-range("J1:K1").WrapText = True
-range("J1:L1").ShrinkToFit = True
-range("P2:P3").NumberFormat = "0.00%"
-
-
+' Inititialize spreadsheet
+Call Init_spread
 
 ' Loop until the end of the spreadsheet
 ' Call the function Identity_ticker to find the next company.  Store the row information to determine where
 ' the comapny starts or stops in the spreadsheet
+' Note: Data requirement is that the spreadsheet has been sorted by ticker and then date with each spreadsheet being for the same year.
 
 Do While continue = True
 
  ' Need to find the row of the next Ticker symbol.   Call the Function Identify_ticker passing in the current sticker
  ' and the rowcount to start looking from.
+ rowct = Identify_ticker(start, rowct)          ' start from the last spot rowct
  
- rowct = Identify_ticker(Start, rowct)   ' start from the last spot rowct
- Found = Cells(rowct, 1).Value                  ' Change of ticker symbol so save it in the appropriate row
+ Found = Cells(rowct, Ticker_col).Value                  ' Change of ticker symbol has been identified. Set the Found field
  Cells(Ticker_cell, 9).Value = Found            ' Place in the spreadsheet at the appropriate location
 
- Cells(Ticker_cell, 20).Value = rowct           ' Need to convert this to an array instead of saving on the spreadsheet
- 
-  
- If rowct > 2 Then
-    ' Not sure I have too, but sorting information.  If needed it would be done now. Or could sort at the very beginning
-    ' Dim strDataRange As Range
-    ' Dim keyRange As range
-    ' Set strDataRange = range("Your Data Range")
-    ' Set keyRange = range("Your Sort by Column")
-    ' strDataRange.Sort Key1:=keyRange, Header:=xlYes
-    
-    
-    'MsgBox (Str(rowct) + Str(Ticker_cell) + Str(Cells(Ticker_cell - 1, 20).Value) + Str(Cells(rowct - 1, 6).Value)) + Str(Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value)
-    Cells(Ticker_cell - 1, 10).Value = Cells(rowct - 1, 6).Value - Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
-        If Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value <> 0 Then
-        Cells(Ticker_cell - 1, 11).Value = Cells(Ticker_cell - 1, 10).Value / Cells(Cells(Ticker_cell - 1, 20).Value, 3).Value
-    Else
-        Cells(Ticker_cell - 1, 11).Value = 0
-    End If
- 
-    'Sum up the volume.  Created my own procedure, but could of used excel function
-    Cells(Ticker_cell - 1, 12).Value = Sum_man(Cells(Ticker_cell - 1, 20).Value, rowct - 1)
-    
-    End If
+ '  Ticker_array(Ticker_cell - 2) = rowct            ' Save the row in an array for later access
+ Cells(Ticker_cell, 20).Value = rowct           ' Save the row in an empty portion of the spreadsheet
  
  ' Increase the row for the next ticker symbol
  Ticker_cell = Ticker_cell + 1
  
  ' reset the Start variable for the while loop
  
- Start = Found
+ start = Found
  
  ' Are we at the end of the spreadsheet. If so jump out of the while loop
   'If Found = "AAN" Then continue = False       ' This is for debugging
@@ -111,8 +79,13 @@ Do While continue = True
 
  ' Get the next sticker
  Loop
+
  
- ' Find the maximum and minimum % increases
+ ' We have all the Tickers and where they start in the spreadsheet.  Time to analyze the calculated data to summarize results
+ ' Loop through the tickers and add the Change, percent change, and total volume. Ticker_cell represents the end of the new
+ ' ticker matrix.
+ 
+ Call Cal_Ticker(Ticker_cell)
  
  temp = get_max(11, 2, Ticker_cell)
  
@@ -138,7 +111,7 @@ Do While continue = True
 
 End Sub
 
-Function Identify_ticker(Start As String, rowct As Long) As Long
+Function Identify_ticker(start As String, rowct As Long) As Long
 
 ' Find the next ticker
 
@@ -152,8 +125,8 @@ ticker_continue = True                              ' Loop while continueis True
 ' Loop until the next sysmbol
 Do While ticker_continue = True
 
- Hold = Cells(i, 1).Value
- If Start <> Hold Then                              ' Found a new ticker symbol
+ Hold = Cells(i, Ticker_col).Value
+ If start <> Hold Then                              ' Found a new ticker symbol
     Identify_ticker = i                             ' return the row of the new ticker symbol
     ticker_continue = False                         ' Exit from the function
  Else
@@ -164,23 +137,68 @@ Loop
 
 End Function
 
-Function Sum_man(First As Long, Second As Long) As Double
-' Sum up the range of cells provided with the input.  From Row First to row Second in column 7 or G.
-
-' Setup needed Variables.
+Sub Cal_Ticker(Ticker_cnter As Integer)
+Dim ticker_start As Long                           ' Start of the data for ticker
+Dim ticker_end, rowcnt As Long                     ' End of the data for a ticker.
+Dim i As Integer
 Dim result As Double
 
-' Initialize result to 0
-result = 0
- 
-For i = First To Second
- result = result + Cells(i, 7).Value
- Next i
- 
-' Return result
-Sum_man = result
 
-End Function
+' Initialize rowcnt to the first row which is 2
+ rowcnt = 2
+ 
+ ' Loop from the start of the column i to the end.
+ For i = 2 To Ticker_cnter - 2
+ 
+  ' Find the maximum and minimum % increases plus volume for each ticker.
+  ' In some cases the data doesn't have data at the beginning days and / or end  before the end of the year.
+  ' In these cases the data will have 0 at the start or end of the data for each ticker.  Need to analyze the data to see if that is
+  ' the case
+ 
+  ' For each ticker find start of data area.  Eliminate starting and ending data with 0's for opening and closing.
+  ' Also calculate the volume during this loop
+
+  ' Initialize result to 0
+    result = 0
+    ticker_start = rowcnt
+  
+    Do While Cells(i, 9).Value = Cells(rowcnt, Ticker_col).Value
+    
+        ' Skip the rows that are 0 open at the top of the ticker
+        If (Cells(rowcnt, Ticker_open_col).Value = 0 And ticker_start = rowcnt) Then ticker_start = rowcnt + 1
+        
+        ' Skip the rows at the end. Basically don't increase the ticker_end variable if close is a 0.
+        If Cells(rowcnt, Ticker_close_col).Value <> 0 Then ticker_end = rowcnt     ' End of the ticker, skip the 0's at the end
+        
+        result = result + Cells(rowcnt, Ticker_volume_col).Value                    ' While we are looping through the ticker data sum up the volumes
+        rowcnt = rowcnt + 1
+    
+        Loop
+        
+    If ticker_start < ticker_end Then
+    
+        ' Take the difference between the ending price and the starting price
+        Cells(i, 10).Value = Cells(ticker_end, Ticker_close_col).Value - Cells(ticker_start, Ticker_open_col).Value
+        
+        ' Take the percent change
+        Cells(i, 11).Value = Cells(i, 10).Value / Cells(ticker_start, Ticker_open_col).Value
+    Else
+        ' no data for the ticker has been stored.  Place 0's in the fields
+        Cells(i, 10).Value = 0
+        Cells(i, 11).Value = 0
+
+    End If
+ 
+    Cells(i, 12).Value = result
+    
+ Next i
+    
+
+ 
+
+End Sub
+
+
 
 Private Sub highlight(min As Integer, max As Integer)
 
@@ -262,10 +280,48 @@ Next i
 
 End Function
 
+Sub Init_spread()
+' Clear where the results will be
+
+range("I:P").ClearContents
+
+' Label and Format the result Columns
+
+range("I1") = "Ticker"
+range("J1") = "Yearly Change"
+range("K1") = "Percent Change"
+range("L1") = "Volume"
+range("O1") = "Ticker"
+range("P1") = "Value"
+range("I1:P1").Font.Bold = True
+range("N2") = "Greatest % Increase"
+range("N3") = "Greatest % Decrease"
+range("N4") = "Greatest Volume"
+range("N2").Font.Bold = True
+range("N3").Font.Bold = True
+range("N4").Font.Bold = True
+range("N:N").ShrinkToFit = True
+range("J1:K1").WrapText = True
+range("J1:L1").ShrinkToFit = True
+range("P2:P3").NumberFormat = "0.00%"
 
 
+Dim sCellVal As String
+Dim R As range
 
+For Each R In range("A1:G1")
 
+    sCellVal = R.Text
+    If sCellVal Like "<ticker>" Then Ticker_col = R.Column
+    If sCellVal Like "<open>" Then Ticker_open_col = R.Column
+
+    If sCellVal Like "<close>" Then Ticker_close_col = R.Column
+
+    If sCellVal Like "<vol>" Then Ticker_volume_col = R.Column
+
+    Next R
+    
+End Sub
 
 
 
