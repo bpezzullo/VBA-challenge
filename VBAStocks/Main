@@ -3,6 +3,9 @@ Global results_ticker_col, _
        results_chg_col, _
        results_per_col, _
        results_vol_col As Integer
+' Global Ticker_array() As Long                               ' Setup an array to store working variables of the row count
+                                                              ' I opted to not go in this direction because I wasn't certain on
+                                                              ' processing time vs using open cells in the spreadsheet.
        
 
 Sub Main()
@@ -30,6 +33,7 @@ results_ticker_col = 9
 results_chg_col = 10
 results_per_col = 11
 results_vol_col = 12
+
 
 
 ' Loop through all the sheets  For i = 1 To 1ast sheet
@@ -66,25 +70,28 @@ start = Found                           '
 continue = True                         ' set the while flag to the initial value
 
 
-' Inititialize spreadsheet
+' Inititialize spreadsheet with the labels and formating by calling Init_spread
 Call Init_spread
 
-' Loop until the end of the spreadsheet
-' Call the function Identity_ticker to find the next company.  Store the row information to determine where
-' the comapny starts or stops in the spreadsheet
+' Loop through the ticker names in the first column (Ticker_col) until the end of the spreadsheet
+' Call the function Identity_ticker to find the next ticker name.  Store the row number to determine where
+' the comapny starts  in the spreadsheet for future subroutine calls
 ' Note: Data requirement is that the spreadsheet has been sorted by ticker and then date with each spreadsheet
 ' being for the same year.
 
 Do While continue = True
 
  ' Need to find the row of the next Ticker symbol.   Call the Function Identify_ticker passing in the current sticker
- ' and the rowcount to start looking from.
+ ' (start) and the rowcount (rowct) to start looking from.  The function returns the row count of the next ticker
+
  rowct = Identify_ticker(start, rowct)                   ' start from the last spot rowct
  
  Found = Cells(rowct, Ticker_col).Value                  ' Change of ticker symbol has been identified. Set the Found field
  Cells(Ticker_cell, results_ticker_col).Value = Found    ' Place in the spreadsheet at the appropriate location
-
- '  Ticker_array(Ticker_cell - 2) = rowct                ' Save the row in an array for later access
+                                                         ' 
+ 
+ ' ReDim Preserve Ticker_array(Ticker_cell - 2) As Long  ' opted not to use an array
+ ' Ticker_array(Ticker_cell - 2) = rowct                 ' Save the row in an array for later access
  Cells(Ticker_cell, 20).Value = rowct                    ' Save the row in an empty portion of the spreadsheet
  
  ' Increase the row for the next ticker symbol
@@ -106,10 +113,12 @@ Do While continue = True
  
  ' We have all the Tickers and where they start in the spreadsheet.  Time to analyze the calculated data to summarize results
  ' Loop through the tickers and add the Change, percent change, and total volume. Ticker_cell represents the end of the new
- ' ticker matrix.
+ ' ticker matrix.  I could of combined this with the above loop, but separated for a cleaner distinction of what each loop
+ ' is doing.
  
- Call Cal_Ticker(Ticker_cell)                           ' Calculate the change for the year, percent change, and total volume
-                                                        ' Pass in the number of Tickers found in the sheet
+ Call Cal_Ticker(Ticker_cell-2)                           ' Calculate the change for the year, percent change, and total volume
+                                                        ' Pass in the number of Tickers found in the sheet (Tciker_cell -
+                                                        ' which is the row number -2 as we start at the second row)
  
  temp = get_max(11, 2, Ticker_cell)                     ' Find the maximum percent increase and return the Row number
                                                         ' from the new function get_max.  Pass in the row being examined
@@ -165,6 +174,8 @@ Loop
 End Function
 
 Sub Cal_Ticker(Ticker_cnter As Integer)
+' this subroutine takes in the number of unique tickers and parses the summarized table
+
 Dim ticker_start As Long                           ' Start of the data for ticker
 Dim ticker_end, rowcnt As Long                     ' End of the data for a ticker.
 Dim i As Integer
@@ -174,8 +185,8 @@ Dim result As Double
 ' Initialize rowcnt to the first row which is 2
  rowcnt = 2
  
- ' Loop from the start of the column i to the end.
- For i = 2 To Ticker_cnter - 2
+ ' Loop from the start of the summarize table 2 to the last row (Ticker_cnter).
+ For i = 2 To Ticker_cnter
  
   ' Find the maximum and minimum % increases plus volume for each ticker.
   ' In some cases the data doesn't have data at the beginning days and / or end  before the end of the year.
@@ -188,13 +199,15 @@ Dim result As Double
   ' Initialize result to 0
     result = 0
     ticker_start = rowcnt
-  
+
+    ' loop through all the same tickers.  
+
     Do While Cells(i, results_ticker_col).Value = Cells(rowcnt, Ticker_col).Value
     
         ' Skip the rows that are 0 open at the top of the ticker
         If (Cells(rowcnt, Ticker_open_col).Value = 0 And ticker_start = rowcnt) Then ticker_start = rowcnt + 1
         
-        ' Skip the rows at the end. Basically don't increase the ticker_end variable if close is a 0.
+        ' Skip the rows with 0 close at the end. Basically don't increase the ticker_end variable if close is a 0.
         If Cells(rowcnt, Ticker_close_col).Value <> 0 Then ticker_end = rowcnt     ' End of the ticker, skip the 0's at the end
         
         result = result + Cells(rowcnt, Ticker_volume_col).Value                    ' While we are looping through the ticker data sum up the volumes
@@ -202,7 +215,8 @@ Dim result As Double
     
         Loop
         
-    If ticker_start < ticker_end Then
+    If ticker_start < ticker_end Then                                   ' if the ticker_end is less than the ticker_start
+                                                                        ' then the ticker has all 0's
     
         ' Take the difference between the ending price and the starting price
         Cells(i, results_chg_col).Value = Cells(ticker_end, Ticker_close_col).Value - Cells(ticker_start, Ticker_open_col).Value
@@ -229,15 +243,18 @@ End Sub
 
 Private Sub highlight(min As Integer, max As Integer)
 
+' Highlight the cells with red or green bases on positive or negative gain.  For 0 leave with no coloring
+
 Dim rng As Range, cell As Range
 Dim rangeinfo As String
-Dim Las As String
 
-Cells.Interior.ColorIndex = 0
 
 rangeinfo = cellval("J", min) + ":" + cellval("J", max)
 
 Set rng = Range(rangeinfo)
+
+' set all cells to no backfill 
+rng.Interior.ColorIndex = 0
 
 For Each cell In rng
 
@@ -261,7 +278,10 @@ rng.ClearContents
 
 End Sub
 
+
 Function cellval(letter As String, row As Integer) As String
+
+' Function to concatenate the Column and row
 
 cellval = letter + CStr(row)
 
@@ -269,6 +289,7 @@ End Function
 
 
 Function get_max(col As Integer, first_row As Integer, last_row As Integer) As Integer
+
 ' find the maximum value and return the row that the value was found in.
 
 Dim i As Integer
@@ -332,8 +353,6 @@ Range("J1:K1").WrapText = True
 Range("J1:L1").ShrinkToFit = True
 Range("P2:P3").NumberFormat = "0.00%"
 
-
-    
 End Sub
 
 
